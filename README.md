@@ -47,3 +47,32 @@ ninja
 
 - Andrey Rijov <[ANDronR@gmail.com](mailto:ANDronR@gmail.com)> ( Original Author, Developer, Author )
 - Tobias Gläßer                    ( Maintainer, Developer, from version 0.9.0 and up )
+
+
+
+
+## Changes
+- The VNC processing logic has been modified to be more Windows-compatible.
+
+### Build
+- Clone the repo to `%userprofile%\Downloads`
+- Install MSVC2
+- Execute MSVC2 MinGW64 Shell
+- Run below commands on MinGW64 shell
+```
+printf '%s\n' 'Server = https://repo.msys2.org/msys/$arch/' > /etc/pacman.d/mirrorlist.msys
+printf '%s\n' 'Server = https://repo.msys2.org/mingw/$repo/' > /etc/pacman.d/mirrorlist.mingw
+pacman -Syyu
+pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-toolchain base-devel
+pacman -S mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja mingw-w64-x86_64-pkg-config mingw-w64-x86_64-qt6-base mingw-w64-x86_64-qt6-declarative mingw-w64-x86_64-qt6-tools mingw-w64-x86_64-libvncserver
+cd /c/Users/%username%/Downloads/aqemu/
+mkdir build && cd build
+cmake -G "Ninja" .. -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+ninja
+.\aqemu.exe
+```
+- If you run the compiled .exe file on its own, you will encounter a DLL error. You must run it through the MinGW64 shell.
+- CMake required. I installed it via VS2026.
+
+### postscript
+- Won't work on Linux.

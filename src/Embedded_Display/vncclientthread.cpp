@@ -25,10 +25,16 @@
 #include "krdc_debug.h"
 
 #include <cerrno>
+#ifdef Q_OS_WIN
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <mstcpip.h>
+#else
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#endif
 #include <QMutexLocker>
 #include <QThreadStorage>
 #include <QTimer>
@@ -593,6 +599,32 @@ void VncClientThread::clientSetKeepalive()
     if (!m_keepalive.intervalSeconds) {
         return;
     }
+#ifdef Q_OS_WIN
+    // Winsock's keepalive timers use milliseconds, unlike the Unix options.
+    tcp_keepalive keepalive = {};
+    keepalive.onoff = 1;
+    keepalive.keepalivetime = static_cast<ULONG>(m_keepalive.intervalSeconds) * 1000;
+    keepalive.keepaliveinterval = keepalive.keepalivetime;
+    DWORD bytesReturned = 0;
+    if (WSAIoctl(cl->sock, SIO_KEEPALIVE_VALS, &keepalive, sizeof(keepalive),
+                 nullptr, 0, &bytesReturned, nullptr, nullptr) == SOCKET_ERROR) {
+        qWarning() << "WSAIoctl(SIO_KEEPALIVE_VALS)" << WSAGetLastError();
+        return;
+    }
+
+    const int failedProbes = m_keepalive.failedProbes;
+    if (setsockopt(cl->sock, IPPROTO_TCP, TCP_KEEPCNT,
+                   reinterpret_cast<const char *>(&failedProbes),
+                   sizeof(failedProbes)) == SOCKET_ERROR) {
+        const int error = WSAGetLastError();
+        // Older Windows versions retain their system probe count.
+        if (error != WSAENOPROTOOPT) {
+            qWarning() << "setsockopt(TCP_KEEPCNT)" << error;
+            return;
+        }
+        qDebug() << "TCP_KEEPCNT unavailable; using the Windows default";
+    }
+#else
     int optval;
     socklen_t optlen = sizeof(optval);
 
@@ -620,6 +652,7 @@ void VncClientThread::clientSetKeepalive()
         qCritical(KRDC) << "setsockopt(TCP_KEEPCNT)" << strerror(errno);
         return;
     }
+#endif
     m_keepalive.set = true;
     qCDebug(KRDC) << "TCP keepalive set";
 }

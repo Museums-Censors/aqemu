@@ -32,11 +32,7 @@
 //#include <QDesktopWidget>
 #include <QClipboard>
 
-#ifdef Q_OS_WIN32
-// FIXME
-#else
 #include <QTest>
-#endif
 
 #include "Emulator_Control_Window.h"
 #include "Service.h"

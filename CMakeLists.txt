@@ -241,6 +241,12 @@ ADD_EXECUTABLE( aqemu
 
 target_include_directories(aqemu PUBLIC src/ src/docopt/ )
 
+if(WIN32)
+    # Avoid Winsock 1 headers when Qt or application headers include windows.h.
+    target_compile_definitions(aqemu PRIVATE WIN32_LEAN_AND_MEAN)
+    target_link_libraries(aqemu ws2_32)
+endif()
+
 TARGET_LINK_LIBRARIES( aqemu
     Qt6::Qml
     Qt6::QuickControls2
